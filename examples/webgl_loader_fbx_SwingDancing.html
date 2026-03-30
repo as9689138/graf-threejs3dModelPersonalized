@@ -37,6 +37,9 @@
 			let camera, scene, renderer, stats, object, loader, guiMorphsFolder;
 			let mixer;
 
+			let texture;
+			const textureLoader = new THREE.TextureLoader();
+
 			const timer = new THREE.Timer();
 			timer.connect( document );
 
@@ -85,6 +88,11 @@
 				dirLight.shadow.camera.right = 120;
 				scene.add( dirLight );
 
+				const topLight = new THREE.DirectionalLight( 0xffffff, 2.0 );
+				topLight.position.set( 0, 300, 0 );
+				topLight.castShadow = true;
+				scene.add( topLight );
+
 				// scene.add( new THREE.CameraHelper( dirLight.shadow.camera ) );
 
 				// ground
@@ -97,6 +105,10 @@
 				grid.material.opacity = 0.2;
 				grid.material.transparent = true;
 				scene.add( grid );
+
+				texture = textureLoader.load( 'models/textures/madera.jpg' );
+				texture.colorSpace = THREE.SRGBColorSpace;
+				texture.flipY = false;
 			
 				loader = new FBXLoader( manager );
 				loadAsset( params.asset );
@@ -113,6 +125,10 @@
 				controls.update();
 
 				window.addEventListener( 'resize', onWindowResize );
+
+				renderer.outputColorSpace = THREE.SRGBColorSpace;
+				renderer.toneMapping = THREE.ACESFilmicToneMapping;
+				renderer.toneMappingExposure = 0.95;
 
 				// stats
 				stats = new Stats();
@@ -148,7 +164,8 @@
 								const materials = Array.isArray( child.material ) ? child.material : [ child.material ];
 								materials.forEach( material => {
 
-									if ( material.map ) material.map.dispose();
+									// if ( material.map ) material.map.dispose();
+									if ( material.map && material.map !== texture ) material.map.dispose();
 									material.dispose();
 			
 								} );
@@ -189,6 +206,29 @@
 
 							child.castShadow = true;
 							child.receiveShadow = true;
+
+							if ( child.material ) {
+
+								const materials = Array.isArray( child.material ) ? child.material : [ child.material ];
+
+								materials.forEach( ( material ) => {
+
+									material.map = texture;
+									material.transparent = false;
+									material.opacity = 1;
+									material.color.set( 0xffffff );
+
+									if ( 'roughness' in material ) material.roughness = 0.65;
+									if ( 'metalness' in material ) material.metalness = 0.05;
+
+									if ( 'shininess' in material ) material.shininess = 90;
+									if ( 'specular' in material ) material.specular.set( 0x666666 );
+
+									material.needsUpdate = true;
+
+								} );
+
+							}
 
 							if ( child.morphTargetDictionary ) {
 
